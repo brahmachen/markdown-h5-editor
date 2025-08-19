@@ -1,172 +1,159 @@
-import { useState, useRef, useEffect } from "react";
-import ReactMde from "react-mde";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { Button, Upload } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
-import mammoth from "mammoth";
-import { useStyleStore } from "./styleStore";
-import { useControls, Leva, LevaInputs } from "leva";
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import ReactMde from 'react-mde';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Button, Upload, Space, Switch, Tooltip } from 'antd';
+import { UploadOutlined, DownloadOutlined, AimOutlined } from '@ant-design/icons';
+import mammoth from 'mammoth';
+import * as csstree from 'css-tree';
+import { useStyleStore } from './styleStore';
+import type { StyleableElement } from './styleStore';
 
-import "react-mde/lib/styles/css/react-mde-all.css";
-import "./App.css";
+import 'react-mde/lib/styles/css/react-mde-all.css';
+import './App.css';
 
-// --- Leva Style Editor Component ---
-const LevaStyleEditor = () => {
-  const { styles, setStyle } = useStyleStore();
-
-  // For each style property, we create a control.
-  // The `onChange` callback directly updates our Zustand store.
-  // This is the most direct and robust way to link Leva to an external store.
-  useControls('Styling', {
-    'Global Background': {
-      value: styles.global.backgroundColor ?? "#ffffff",
-      type: LevaInputs.COLOR,
-      label: "Global Background",
-      onChange: (c: string) => setStyle('global', { backgroundColor: c }),
-    },
-    h1: {
-      value: styles.h1.color ?? "#000000",
-      type: LevaInputs.COLOR,
-      label: 'H1 Color',
-      onChange: (c: string) => setStyle('h1', { color: c }),
-    },
-    h2: {
-      value: styles.h2.color ?? "#000000",
-      type: LevaInputs.COLOR,
-      label: 'H2 Color',
-      onChange: (c: string) => setStyle('h2', { color: c }),
-    },
-    p: {
-      value: styles.p.color ?? "#000000",
-      type: LevaInputs.COLOR,
-      label: 'Paragraph Color',
-      onChange: (c: string) => setStyle('p', { color: c }),
-    },
-    a: {
-      value: styles.a.color ?? "#0000ee",
-      type: LevaInputs.COLOR,
-      label: 'Link Color',
-      onChange: (c: string) => setStyle('a', { color: c }),
-    },
-    blockquote: {
-      value: styles.blockquote.color ?? "#666666",
-      type: LevaInputs.COLOR,
-      label: 'Blockquote Color',
-      onChange: (c: string) => setStyle('blockquote', { color: c }),
-    },
-    code: {
-      value: styles.code.backgroundColor ?? "#f5f5f5",
-      type: LevaInputs.COLOR,
-      label: 'Inline Code BG',
-      onChange: (c: string) => setStyle('code', { backgroundColor: c }),
-    },
-  });
-
-  return null; // Leva panel is global, we don't need to render anything here.
+// --- CSS to JS Object Utilities ---
+const toCssString = (styleObject: React.CSSProperties): string => {
+  return Object.entries(styleObject)
+    .map(([prop, value]) => `${prop.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)}: ${value};`)
+    .join('\n');
 };
 
+const toReactStyleObject = (cssString: string): React.CSSProperties => {
+  const style: React.CSSProperties = {};
+  try {
+    const ast = csstree.parse(cssString, { context: 'declarationList' });
+    csstree.walk(ast, (node) => {
+      if (node.type === 'Declaration') {
+        const prop = node.property.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+        // @ts-ignore
+        style[prop] = node.value.children.first().name;
+      }
+    });
+  } catch (error) {
+    console.error("CSS Parse Error:", error);
+  }
+  return style;
+};
 
-// --- Main App Component ---
-function App() {
-  const [markdown, setMarkdown] = useState(
-`# Heading 1
-## Heading 2
-### Heading 3
-
-This is a paragraph with a [link](https://example.com). It also has some 
-inline code
-.
-
-> This is a blockquote. It can be styled as well.
-
-javascript
-// This is a code block.
-function hello() {
-  console.log("Hello, Leva!");
-}
-`
-  );
-  const [selectedTab, setSelectedTab] = useState<'write' | 'preview'>('write');
-  const styles = useStyleStore((state) => state.styles);
-
-  const editorRef = useRef<HTMLDivElement>(null);
-  const previewRef = useRef<HTMLDivElement>(null);
-  const isSyncing = useRef(false);
+// --- Style Editor Panel ---
+const StyleEditorPanel = () => {
+  const { styles, selectedElement, setStyle } = useStyleStore();
+  const [cssText, setCssText] = useState('');
 
   useEffect(() => {
-    const editorTextArea = editorRef.current?.querySelector('.mde-textarea-wrapper textarea');
-    const previewDiv = previewRef.current;
-    if (!editorTextArea || !previewDiv) return;
-    const handleScroll = (source: Element, target: Element) => {
-      if (isSyncing.current) return;
-      isSyncing.current = true;
-      const { scrollTop, scrollHeight, clientHeight } = source;
-      const scrollRatio = scrollTop / (scrollHeight - clientHeight);
-      target.scrollTop = scrollRatio * (target.scrollHeight - target.clientHeight);
-      setTimeout(() => { isSyncing.current = false; }, 50);
-    };
-    const handleEditorScroll = () => handleScroll(editorTextArea, previewDiv);
-    const handlePreviewScroll = () => handleScroll(previewDiv, editorTextArea);
-    editorTextArea.addEventListener('scroll', handleEditorScroll);
-    previewDiv.addEventListener('scroll', handlePreviewScroll);
-    return () => {
-      editorTextArea.removeEventListener('scroll', handleEditorScroll);
-      previewDiv.removeEventListener('scroll', handlePreviewScroll);
-    };
-  }, []);
+    setCssText(toCssString(styles[selectedElement]));
+  }, [selectedElement, styles]);
 
-  const handleFileChange = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const arrayBuffer = e.target?.result;
-      if (arrayBuffer) {
-        try {
-          const result = await mammoth.convertToMarkdown({ arrayBuffer: arrayBuffer as ArrayBuffer });
-          setMarkdown(result.value);
-        } catch (error) {
-          console.error('Error converting Word document:', error);
-        }
-      }
-    };
-    reader.readAsArrayBuffer(file);
-    return false;
-  };
-
-  const markdownComponents = {
-    h1: ({ ...props }) => <h1 style={styles.h1} {...props} />,
-    h2: ({ ...props }) => <h2 style={styles.h2} {...props} />,
-    h3: ({ ...props }) => <h3 style={styles.h3} {...props} />,
-    p: ({ ...props }) => <p style={styles.p} {...props} />,
-    a: ({ ...props }) => <a style={styles.a} {...props} />,
-    blockquote: ({ ...props }) => <blockquote style={styles.blockquote} {...props} />,
-    code: ({ ...props }) => <code style={styles.code} {...props} />,
-    pre: ({ ...props }) => <pre style={styles.pre} {...props} />,
+  const handleCssChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newCssText = e.target.value;
+    setCssText(newCssText);
+    const newStyleObject = toReactStyleObject(newCssText);
+    setStyle(selectedElement, newStyleObject);
   };
 
   return (
+    <div className="style-pane">
+      <div className="style-pane-header">
+        <h3>Editing: <span>{selectedElement}</span></h3>
+      </div>
+      <textarea className="css-editor" value={cssText} onChange={handleCssChange} />
+    </div>
+  );
+};
+
+// --- Main App Component ---
+function App() {
+  const [markdown, setMarkdown] = useState('# Welcome to the Inspector!\n\nTurn on **Inspect Mode** and click any element to style it.\n\n> This is a blockquote.\n\n**This is some bold text.**');
+  const [selectedTab, setSelectedTab] = useState<'write' | 'preview'>('write');
+  const { styles, setStyles, isInspecting, setInspecting, setSelectedElement } = useStyleStore();
+
+  const handleFileChange = (file: File, type: 'word' | 'theme') => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        if (type === 'word') {
+          const arrayBuffer = e.target?.result;
+          if (!arrayBuffer) return;
+          const result = await mammoth.convertToMarkdown({ arrayBuffer: arrayBuffer as ArrayBuffer });
+          setMarkdown(result.value);
+        } else {
+          const theme = JSON.parse(e.target?.result as string);
+          setStyles(theme);
+        }
+      } catch (error) { console.error('Error processing file:', error); }
+    };
+    if (type === 'word') reader.readAsArrayBuffer(file);
+    else reader.readAsText(file);
+    return false;
+  };
+
+  const handleThemeExport = () => {
+    const blob = new Blob([JSON.stringify(styles, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'my-theme.json';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  const markdownComponents = useMemo(() => {
+    const createStyledComponent = (tag: keyof JSX.IntrinsicElements, styleKey: StyleableElement) => {
+      return ({ ...props }) => {
+        const style = styles[styleKey];
+        const handleClick = (e: React.MouseEvent) => {
+          if (isInspecting) {
+            e.preventDefault();
+            e.stopPropagation();
+            setSelectedElement(styleKey);
+          }
+        };
+        const className = isInspecting ? 'inspectable' : '';
+        const FinalComponent = tag as any;
+        return <FinalComponent style={style} onClick={handleClick} className={className} {...props} />;
+      };
+    };
+
+    return {
+      h1: createStyledComponent('h1', 'h1'),
+      h2: createStyledComponent('h2', 'h2'),
+      h3: createStyledComponent('h3', 'h3'),
+      p: createStyledComponent('p', 'p'),
+      a: createStyledComponent('a', 'a'),
+      blockquote: createStyledComponent('blockquote', 'blockquote'),
+      code: createStyledComponent('code', 'code'),
+      pre: createStyledComponent('pre', 'pre'),
+      strong: createStyledComponent('strong', 'strong'),
+    };
+  }, [styles, isInspecting, setSelectedElement]);
+
+  return (
     <div className="app-container">
-      <Leva /> {/* This renders the floating panel toggle */}
-      <LevaStyleEditor />
-      <div className="editor-pane" ref={editorRef}>
+      <StyleEditorPanel />
+      <div className="editor-pane">
         <div className="toolbar">
-          <Upload accept=".docx" showUploadList={false} beforeUpload={handleFileChange}>
-            <Button icon={<UploadOutlined />}>Import from Word</Button>
-          </Upload>
+          <Space>
+            <Upload accept=".docx" showUploadList={false} beforeUpload={(file) => handleFileChange(file, 'word')}>
+              <Button icon={<UploadOutlined />}>Import Word</Button>
+            </Upload>
+            <Upload accept=".json" showUploadList={false} beforeUpload={(file) => handleFileChange(file, 'theme')}>
+              <Button icon={<UploadOutlined />}>Import Theme</Button>
+            </Upload>
+            <Button icon={<DownloadOutlined />} onClick={handleThemeExport}>Export Theme</Button>
+            <Tooltip title={isInspecting ? 'Turn Off Inspect Mode' : 'Turn On Inspect Mode'}>
+              <Switch checked={isInspecting} onChange={setInspecting} checkedChildren={<AimOutlined />} unCheckedChildren={<AimOutlined />} />
+            </Tooltip>
+          </Space>
         </div>
         <ReactMde
           value={markdown}
           onChange={setMarkdown}
           selectedTab={selectedTab}
           onTabChange={setSelectedTab}
-          generateMarkdownPreview={(md) =>
-            Promise.resolve(
-              <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>{md}</ReactMarkdown>
-            )
-          }
+          generateMarkdownPreview={(md) => Promise.resolve(<ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>{md}</ReactMarkdown>)}
         />
       </div>
-      <div className="preview-pane" ref={previewRef} style={styles.global}>
+      <div className="preview-pane" style={styles.global}>
         <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
       </div>
     </div>

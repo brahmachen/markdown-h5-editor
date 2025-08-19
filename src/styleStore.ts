@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import React from 'react';
 
+export type StyleableElement = keyof AppStyles;
+
 // Define a more comprehensive style structure
-interface AppStyles {
+export interface AppStyles {
   global: React.CSSProperties;
   h1: React.CSSProperties;
   h2: React.CSSProperties;
@@ -12,18 +14,20 @@ interface AppStyles {
   blockquote: React.CSSProperties;
   code: React.CSSProperties; // For inline code: `code`
   pre: React.CSSProperties;  // For code blocks: ```code```
+  strong: React.CSSProperties; // For bold text: **strong**
 }
 
 interface StyleState {
   styles: AppStyles;
-  // The key is now a key of the AppStyles object
-  setStyle: (element: keyof AppStyles, newStyle: React.CSSProperties) => void;
-  // Action to replace the entire style object, useful for leva
+  isInspecting: boolean;
+  selectedElement: StyleableElement;
+  setStyle: (element: StyleableElement, newStyle: React.CSSProperties) => void;
   setStyles: (newStyles: AppStyles) => void;
+  setInspecting: (isInspecting: boolean) => void;
+  setSelectedElement: (element: StyleableElement) => void;
 }
 
 export const useStyleStore = create<StyleState>((set) => ({
-  // Initial default styles for a wider range of elements
   styles: {
     global: {
       backgroundColor: '#ffffff',
@@ -50,17 +54,22 @@ export const useStyleStore = create<StyleState>((set) => ({
       padding: '1em',
       borderRadius: '5px'
     },
+    strong: {
+      color: '#000000' // Default bold color
+    }
   },
+  isInspecting: false,
+  selectedElement: 'global',
 
-  // Action to update a single property of a single element
   setStyle: (element, newStyle) =>
     set((state) => ({
       styles: {
         ...state.styles,
-        [element]: { ...state.styles[element], ...newStyle },
+        [element]: newStyle, // Replace the whole style for the element
       },
     })),
 
-  // Action to replace the whole style object
   setStyles: (newStyles) => set({ styles: newStyles }),
+  setInspecting: (isInspecting) => set({ isInspecting }),
+  setSelectedElement: (element) => set({ selectedElement: element }),
 }));

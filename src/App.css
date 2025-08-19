@@ -17,6 +17,46 @@ html, body, #root {
   width: 100vw;
 }
 
+.style-pane {
+  width: 280px;
+  height: 100%;
+  border-right: 1px solid #d9d9d9;
+  background-color: #fafafa;
+  display: flex;
+  flex-direction: column;
+}
+
+.style-pane-header {
+  padding: 1rem;
+  border-bottom: 1px solid #d9d9d9;
+  flex-shrink: 0;
+}
+
+.style-pane-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.style-pane-header h3 span {
+  font-family: monospace;
+  background-color: #e0e0e0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.css-editor {
+  flex-grow: 1;
+  width: 100%;
+  border: none;
+  outline: none;
+  padding: 1rem;
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
+  background-color: #fafafa;
+}
+
 .editor-pane {
   flex: 1;
   height: 100%;
@@ -30,7 +70,6 @@ html, body, #root {
   flex: 1;
   height: 100%;
   padding: 1rem;
-  /* The background color will now be controlled by the style editor */
   overflow-y: auto;
 }
 
@@ -46,4 +85,15 @@ html, body, #root {
 
 .editor-pane .mde-container .mde-textarea-wrapper textarea {
   height: 100%;
+}
+
+/* Inspector Styles */
+.inspectable {
+  cursor: pointer;
+  outline: 1px dashed #007bff;
+  transition: background-color 0.2s;
+}
+
+.inspectable:hover {
+  background-color: rgba(0, 123, 255, 0.1);
 }
