@@ -71,6 +71,36 @@ function App() {
   const [markdown, setMarkdown] = useState('# Welcome to the Inspector!\n\nTurn on **Inspect Mode** and click any element to style it.\n\n> This is a blockquote.\n\n**This is some bold text.**');
   const [selectedTab, setSelectedTab] = useState<'write' | 'preview'>('write');
   const { styles, setStyles, isInspecting, setInspecting, setSelectedElement } = useStyleStore();
+  const editorRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const isSyncing = useRef(false);
+
+  // This useEffect is for scroll syncing.
+  useEffect(() => {
+    const editorTextArea = editorRef.current?.querySelector('.mde-textarea-wrapper textarea');
+    const previewDiv = previewRef.current;
+    if (!editorTextArea || !previewDiv) return;
+
+    const handleScroll = (source: Element, target: Element) => {
+      if (isSyncing.current) return;
+      isSyncing.current = true;
+      const { scrollTop, scrollHeight, clientHeight } = source;
+      const scrollRatio = scrollTop / (scrollHeight - clientHeight);
+      target.scrollTop = scrollRatio * (target.scrollHeight - target.clientHeight);
+      setTimeout(() => { isSyncing.current = false; }, 50);
+    };
+
+    const handleEditorScroll = () => handleScroll(editorTextArea, previewDiv);
+    const handlePreviewScroll = () => handleScroll(previewDiv, editorTextArea);
+
+    editorTextArea.addEventListener('scroll', handleEditorScroll);
+    previewDiv.addEventListener('scroll', handlePreviewScroll);
+
+    return () => {
+      editorTextArea.removeEventListener('scroll', handleEditorScroll);
+      previewDiv.removeEventListener('scroll', handlePreviewScroll);
+    };
+  }, [markdown]); // Dependency on markdown ensures re-binding if editor re-renders.
 
   const handleFileChange = (file: File, type: 'word' | 'theme') => {
     const reader = new FileReader();
@@ -138,7 +168,7 @@ function App() {
   return (
     <div className="app-container">
       <StyleEditorPanel />
-      <div className="editor-pane">
+      <div className="editor-pane" ref={editorRef}>
         <div className="toolbar">
           <Space>
             <Upload accept=".docx" showUploadList={false} beforeUpload={(file) => handleFileChange(file, 'word')}>
@@ -165,6 +195,7 @@ function App() {
         className={`preview-pane ${isInspecting ? 'inspectable' : ''}`}
         style={styles.previewPane} 
         onClick={(e) => createClickHandler(e, 'previewPane')}
+        ref={previewRef}
       >
         <div 
           className={`markdown-wrapper ${isInspecting ? 'inspectable' : ''}`}
