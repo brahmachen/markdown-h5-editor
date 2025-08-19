@@ -26,12 +26,14 @@ const toReactStyleObject = (cssString: string): React.CSSProperties => {
     csstree.walk(ast, (node) => {
       if (node.type === 'Declaration') {
         const prop = node.property.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+        // Use generate to correctly get the full value as a string.
+        const value = csstree.generate(node.value);
         // @ts-ignore
-        style[prop] = node.value.children.first().name;
+        style[prop] = value.trim();
       }
     });
   } catch (error) {
-    console.error("CSS Parse Error:", error);
+    // Don't log errors for incomplete CSS as user is typing
   }
   return style;
 };
@@ -43,7 +45,7 @@ const StyleEditorPanel = () => {
 
   useEffect(() => {
     setCssText(toCssString(styles[selectedElement]));
-  }, [selectedElement, styles]);
+  }, [selectedElement]);
 
   const handleCssChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newCssText = e.target.value;
