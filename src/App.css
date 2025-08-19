@@ -31,6 +31,7 @@ html, body, #root {
   height: 100%;
   padding: 1rem;
   border-right: 1px solid #d9d9d9;
+  /* Make this a flex container to control its children */
   display: flex;
   flex-direction: column;
 }
@@ -40,16 +41,23 @@ html, body, #root {
   height: 100%;
   padding: 1rem;
   background-color: #ffffff;
-  overflow-y: auto;
+  overflow-y: auto; /* Ensure preview is scrollable */
 }
 
 .toolbar {
   margin-bottom: 1rem;
+  flex-shrink: 0; /* Prevent toolbar from shrinking */
 }
 
+/* Let react-mde container grow to fill the remaining space */
 .editor-pane .mde-container {
-  height: 100% !important; /* Override default height */
   flex-grow: 1;
+  height: 100%;
+}
+
+/* Ensure the textarea inside react-mde is also full height */
+.editor-pane .mde-container .mde-textarea-wrapper textarea {
+  height: 100%;
 }
 
 .style-group {
