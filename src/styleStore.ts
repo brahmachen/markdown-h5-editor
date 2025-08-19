@@ -5,16 +5,17 @@ export type StyleableElement = keyof AppStyles;
 
 // Define a more comprehensive style structure
 export interface AppStyles {
-  global: React.CSSProperties;
+  previewPane: React.CSSProperties; // Styles for the entire preview area
+  global: React.CSSProperties;      // Styles for the direct content wrapper
   h1: React.CSSProperties;
   h2: React.CSSProperties;
   h3: React.CSSProperties;
   p: React.CSSProperties;
   a: React.CSSProperties;
   blockquote: React.CSSProperties;
-  code: React.CSSProperties; // For inline code: `code`
-  pre: React.CSSProperties;  // For code blocks: ```code```
-  strong: React.CSSProperties; // For bold text: **strong**
+  code: React.CSSProperties;
+  pre: React.CSSProperties;
+  strong: React.CSSProperties;
 }
 
 interface StyleState {
@@ -29,8 +30,12 @@ interface StyleState {
 
 export const useStyleStore = create<StyleState>((set) => ({
   styles: {
+    previewPane: {
+      backgroundColor: '#f0f2f5',
+    },
     global: {
       backgroundColor: '#ffffff',
+      padding: '2em'
     },
     h1: { fontSize: '2.2em', color: '#111111', marginTop: '0.5em' },
     h2: { fontSize: '1.8em', color: '#222222', marginTop: '0.5em' },
@@ -55,7 +60,7 @@ export const useStyleStore = create<StyleState>((set) => ({
       borderRadius: '5px'
     },
     strong: {
-      color: '#000000' // Default bold color
+      color: '#000000'
     }
   },
   isInspecting: false,
@@ -65,7 +70,7 @@ export const useStyleStore = create<StyleState>((set) => ({
     set((state) => ({
       styles: {
         ...state.styles,
-        [element]: newStyle, // Replace the whole style for the element
+        [element]: { ...state.styles[element], ...newStyle }, // Correctly merge styles
       },
     })),
 

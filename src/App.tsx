@@ -44,7 +44,9 @@ const StyleEditorPanel = () => {
   const [cssText, setCssText] = useState('');
 
   useEffect(() => {
-    setCssText(toCssString(styles[selectedElement]));
+    if (styles[selectedElement]) {
+      setCssText(toCssString(styles[selectedElement]));
+    }
   }, [selectedElement]);
 
   const handleCssChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -85,8 +87,7 @@ function App() {
         }
       } catch (error) { console.error('Error processing file:', error); }
     };
-    if (type === 'word') reader.readAsArrayBuffer(file);
-    else reader.readAsText(file);
+    if (type === 'word') reader.readAsArrayBuffer(file); else reader.readAsText(file);
     return false;
   };
 
@@ -99,20 +100,19 @@ function App() {
     URL.revokeObjectURL(link.href);
   };
 
+  const createClickHandler = (e: React.MouseEvent, styleKey: StyleableElement) => {
+    if (isInspecting) {
+      e.preventDefault();
+      e.stopPropagation();
+      setSelectedElement(styleKey);
+    }
+  };
+
   const markdownComponents = useMemo(() => {
     const createStyledComponent = (tag: keyof JSX.IntrinsicElements, styleKey: StyleableElement) => {
       return ({ ...props }) => {
-        const style = styles[styleKey];
-        const handleClick = (e: React.MouseEvent) => {
-          if (isInspecting) {
-            e.preventDefault();
-            e.stopPropagation();
-            setSelectedElement(styleKey);
-          }
-        };
-        const className = isInspecting ? 'inspectable' : '';
         const FinalComponent = tag as any;
-        return <FinalComponent style={style} onClick={handleClick} className={className} {...props} />;
+        return <FinalComponent style={styles[styleKey]} onClick={(e: React.MouseEvent) => createClickHandler(e, styleKey)} className={isInspecting ? 'inspectable' : ''} {...props} />;
       };
     };
 
@@ -128,6 +128,12 @@ function App() {
       strong: createStyledComponent('strong', 'strong'),
     };
   }, [styles, isInspecting, setSelectedElement]);
+
+  const handlePreviewPaneClick = () => {
+    if (isInspecting) {
+      setSelectedElement('global');
+    }
+  };
 
   return (
     <div className="app-container">
@@ -155,8 +161,18 @@ function App() {
           generateMarkdownPreview={(md) => Promise.resolve(<ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>{md}</ReactMarkdown>)}
         />
       </div>
-      <div className="preview-pane" style={styles.global}>
-        <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+      <div 
+        className={`preview-pane ${isInspecting ? 'inspectable' : ''}`}
+        style={styles.previewPane} 
+        onClick={(e) => createClickHandler(e, 'previewPane')}
+      >
+        <div 
+          className={`markdown-wrapper ${isInspecting ? 'inspectable' : ''}`}
+          style={styles.global} 
+          onClick={(e) => createClickHandler(e, 'global')}
+        >
+          <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+        </div>
       </div>
     </div>
   );
