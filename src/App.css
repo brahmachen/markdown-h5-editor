@@ -1,0 +1,78 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  background-color: #f0f2f5;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+.style-pane {
+  width: 280px;
+  height: 100%;
+  padding: 1rem;
+  border-right: 1px solid #d9d9d9;
+  background-color: #fafafa;
+  overflow-y: auto;
+}
+
+.editor-pane {
+  flex: 1;
+  height: 100%;
+  padding: 1rem;
+  border-right: 1px solid #d9d9d9;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-pane {
+  flex: 1;
+  height: 100%;
+  padding: 1rem;
+  background-color: #ffffff;
+  overflow-y: auto;
+}
+
+.toolbar {
+  margin-bottom: 1rem;
+}
+
+.editor-pane .mde-container {
+  height: 100% !important; /* Override default height */
+  flex-grow: 1;
+}
+
+.style-group {
+  margin-bottom: 1.5rem;
+}
+
+.style-group h3 {
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.style-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.style-item label {
+  font-size: 0.875rem;
+}
+
+.style-item input {
+  width: 100px;
+}
