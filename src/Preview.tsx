@@ -15,7 +15,7 @@ const usePreviewComms = (setMarkdown: (md: string) => void) => {
 
       switch (type) {
         case 'toggle-inspect':
-          document.body.style.cursor = payload ? 'crosshair' : 'default';
+          document.body.classList.toggle('inspect-mode-active', payload);
           break;
         case 'update-markdown':
           setMarkdown(payload);
@@ -34,7 +34,7 @@ const usePreviewComms = (setMarkdown: (md: string) => void) => {
 
     // --- Handles clicks within the iframe for inspection ---
     const handleInspectClick = (e: MouseEvent) => {
-      if (document.body.style.cursor !== 'crosshair') return;
+      if (!document.body.classList.contains('inspect-mode-active')) return;
       e.preventDefault();
       e.stopPropagation();
       let target = e.target as HTMLElement;
@@ -72,9 +72,21 @@ const usePreviewComms = (setMarkdown: (md: string) => void) => {
   }, [setMarkdown]);
 };
 
+const inspectorStyles = `
+  .inspect-mode-active [data-style-key] {
+    cursor: crosshair;
+    outline: 1px dashed rgba(0, 123, 255, 0.5);
+    transition: outline-color 0.2s, background-color 0.2s;
+  }
+  .inspect-mode-active [data-style-key]:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+    outline: 2px solid rgba(0, 123, 255, 1);
+  }
+`;
+
 // The Preview Component to be rendered in the iframe
 const Preview = () => {
-  const { styles, isInspecting } = useStyleStore();
+  const { styles } = useStyleStore();
   const [markdown, setMarkdown] = useState('');
   usePreviewComms(setMarkdown);
 
@@ -119,9 +131,10 @@ const Preview = () => {
 
   return (
     <>
+      <style>{inspectorStyles}</style>
       <style>{generatedCss}</style>
       <div 
-        className={`markdown-wrapper ${isInspecting ? 'inspectable' : ''}`}
+        className="markdown-wrapper" // No longer need to toggle class here
         data-style-key="global"
       >
         <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>
@@ -131,5 +144,6 @@ const Preview = () => {
     </>
   );
 };
+
 
 export default Preview;

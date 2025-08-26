@@ -265,6 +265,9 @@ function App() {
           generateMarkdownPreview={(md) => 
             Promise.resolve(<ReactMarkdown remarkPlugins={[remarkGfm]}>{md}</ReactMarkdown>)
           }
+          heightUnits='vh'
+          disablePreview
+          minEditorHeight={80}
         />
       </div>
       <div className="preview-pane-wrapper">
