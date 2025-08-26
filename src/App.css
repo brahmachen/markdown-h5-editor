@@ -100,3 +100,24 @@ html, body, #root {
 .inspectable:hover {
   background-color: rgba(0, 123, 255, 0.1);
 }
+
+/* --- Phone-like Preview Pane --- */
+.preview-pane-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background-color: #f0f2f5; /* A neutral background to highlight the phone */
+  overflow: hidden;
+  flex: 1;
+}
+
+.preview-iframe {
+  width: 375px;
+  height: 812px; /* A common aspect ratio for modern phones */
+  border: 14px solid #111;
+  border-radius: 40px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+  background-color: #fff; /* Screen background */
+  transition: all 0.3s ease;
+}

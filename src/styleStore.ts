@@ -20,10 +20,12 @@ export interface AppStyles {
 
 interface StyleState {
   styles: AppStyles;
+  markdown: string;
   isInspecting: boolean;
   selectedElement: StyleableElement;
   setStyle: (element: StyleableElement, newStyle: React.CSSProperties) => void;
   setStyles: (newStyles: AppStyles) => void;
+  setMarkdown: (markdown: string) => void;
   setInspecting: (isInspecting: boolean) => void;
   setSelectedElement: (element: StyleableElement) => void;
 }
@@ -32,6 +34,7 @@ export const useStyleStore = create<StyleState>((set) => ({
   styles: {
     previewPane: {
       backgroundColor: '#f0f2f5',
+      border: 'none',
     },
     global: {
       backgroundColor: '#ffffff',
@@ -42,20 +45,20 @@ export const useStyleStore = create<StyleState>((set) => ({
     h3: { fontSize: '1.5em', color: '#333333', marginTop: '0.5em' },
     p: { fontSize: '1em', lineHeight: 1.7, color: '#333333' },
     a: { color: '#007bff', textDecoration: 'underline' },
-    blockquote: { 
-      borderLeft: '4px solid #dddddd', 
-      paddingLeft: '1em', 
+    blockquote: {
+      borderLeft: '4px solid #dddddd',
+      paddingLeft: '1em',
       color: '#777777',
       margin: '1em 0'
     },
-    code: { 
+    code: {
       backgroundColor: '#f0f0f0',
       color: '#c7254e',
       padding: '0.2em 0.4em',
       borderRadius: '3px'
     },
-    pre: { 
-      backgroundColor: '#f5f5f5', 
+    pre: {
+      backgroundColor: '#f5f5f5',
       padding: '1em',
       borderRadius: '5px'
     },
@@ -63,6 +66,7 @@ export const useStyleStore = create<StyleState>((set) => ({
       color: '#000000'
     }
   },
+  markdown: '# Welcome!\n\nThis is the final, stable version of the editor. Editing should now work as expected.',
   isInspecting: false,
   selectedElement: 'global',
 
@@ -75,6 +79,7 @@ export const useStyleStore = create<StyleState>((set) => ({
     })),
 
   setStyles: (newStyles) => set({ styles: newStyles }),
+  setMarkdown: (markdown) => set({ markdown }),
   setInspecting: (isInspecting) => set({ isInspecting }),
   setSelectedElement: (element) => set({ selectedElement: element }),
 }));

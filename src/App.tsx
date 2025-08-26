@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactMde from 'react-mde';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button, Upload, Space, Switch, Tooltip, message } from 'antd';
-import { UploadOutlined, DownloadOutlined, AimOutlined, FileTextOutlined, SaveOutlined } from '@ant-design/icons';
+import { UploadOutlined, AimOutlined, FileTextOutlined, SaveOutlined } from '@ant-design/icons';
 import mammoth from 'mammoth';
 import * as csstree from 'css-tree';
 import { useStyleStore } from './styleStore';
@@ -55,7 +55,7 @@ const StyleEditorPanel = () => {
     if (styles[selectedElement]) {
       setLocalCssText(toCssString(styles[selectedElement]));
     }
-  }, [selectedElement]);
+  }, [selectedElement, styles]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setLocalCssText(e.target.value);
@@ -83,41 +83,99 @@ const StyleEditorPanel = () => {
 
 // --- Main App Component ---
 function App() {
-  const [markdown, setMarkdown] = useState('# Welcome!\n\nThis is the final, stable version of the editor. Editing should now work as expected.');
   const [selectedTab, setSelectedTab] = useState<'write' | 'preview'>('write');
-  const { styles, setStyles, isInspecting, setInspecting, setSelectedElement } = useStyleStore();
+  const {
+    markdown,
+    setMarkdown,
+    styles,
+    setStyles,
+    isInspecting,
+    setInspecting,
+    setSelectedElement,
+  } = useStyleStore();
 
   const editorRef = useRef<HTMLDivElement>(null);
-  const previewRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [isPreviewReady, setPreviewReady] = useState(false);
   const isSyncing = useRef(false);
 
-  // This useEffect is for scroll syncing.
+  // --- PostMessage Communication with iFrame ---
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+
+      const { type, payload } = event.data;
+
+      switch (type) {
+        case 'preview-ready':
+          setPreviewReady(true);
+          break;
+        case 'element-selected':
+          setSelectedElement(payload);
+          break;
+        case 'preview-scroll': {
+          if (isSyncing.current) return;
+          isSyncing.current = true;
+          const editorTextArea = editorRef.current?.querySelector('.mde-textarea-wrapper textarea');
+          if (editorTextArea) {
+            const { scrollHeight, clientHeight } = editorTextArea;
+            editorTextArea.scrollTop = payload * (scrollHeight - clientHeight);
+          }
+          setTimeout(() => { isSyncing.current = false; }, 100);
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [setSelectedElement]);
+
+  // --- Scroll Sync from Editor to Preview ---
   useEffect(() => {
     const editorTextArea = editorRef.current?.querySelector('.mde-textarea-wrapper textarea');
-    const previewDiv = previewRef.current;
-    if (!editorTextArea || !previewDiv) return;
+    if (!editorTextArea || !isPreviewReady) return;
 
-    const handleScroll = (source: Element, target: Element) => {
+    const handleEditorScroll = () => {
       if (isSyncing.current) return;
       isSyncing.current = true;
-      const { scrollTop, scrollHeight, clientHeight } = source;
+      const { scrollTop, scrollHeight, clientHeight } = editorTextArea;
       const scrollRatio = scrollTop / (scrollHeight - clientHeight);
-      target.scrollTop = scrollRatio * (target.scrollHeight - target.clientHeight);
-      setTimeout(() => { isSyncing.current = false; }, 50);
-    };
 
-    const handleEditorScroll = () => handleScroll(editorTextArea, previewDiv);
-    const handlePreviewScroll = () => handleScroll(previewDiv, editorTextArea);
+      iframeRef.current?.contentWindow?.postMessage(
+        { type: 'editor-scroll', payload: scrollRatio },
+        '*'
+      );
+      setTimeout(() => { isSyncing.current = false; }, 100);
+    };
 
     editorTextArea.addEventListener('scroll', handleEditorScroll);
-    previewDiv.addEventListener('scroll', handlePreviewScroll);
-
     return () => {
       editorTextArea.removeEventListener('scroll', handleEditorScroll);
-      previewDiv.removeEventListener('scroll', handlePreviewScroll);
     };
-  }, [markdown]); // Dependency on markdown ensures re-binding if editor re-renders.
+  }, [isPreviewReady]);
 
+  // Sync inspecting state to iframe
+  useEffect(() => {
+    if (isPreviewReady && iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
+        { type: 'toggle-inspect', payload: isInspecting },
+        '*'
+      );
+    }
+  }, [isInspecting, isPreviewReady]);
+
+  // Sync markdown content to iframe
+  useEffect(() => {
+    if (isPreviewReady && iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
+        { type: 'update-markdown', payload: markdown },
+        '*'
+      );
+    }
+  }, [markdown, isPreviewReady]);
 
   // --- File Handlers ---
   const handleWordImport = (file: File) => {
@@ -129,7 +187,7 @@ function App() {
         const result = await mammoth.convertToMarkdown({ arrayBuffer: arrayBuffer as ArrayBuffer });
         setMarkdown(result.value);
         message.success('Word document imported successfully!');
-      } catch (error) { 
+      } catch (error) {
         console.error('Error converting Word document:', error);
         message.error('Failed to import Word document.');
       }
@@ -150,7 +208,7 @@ function App() {
         } else {
           message.error('Invalid project file format.');
         }
-      } catch (error) { 
+      } catch (error) {
         console.error('Error parsing project file:', error);
         message.error('Failed to parse project file.');
       }
@@ -165,7 +223,7 @@ function App() {
       markdownContent: markdown,
       theme: {
         styles: styles,
-      }
+      },
     };
     const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
@@ -175,24 +233,6 @@ function App() {
     URL.revokeObjectURL(link.href);
     message.success('Project exported!');
   };
-
-  const createClickHandler = (e: React.MouseEvent, styleKey: StyleableElement) => {
-    if (isInspecting) {
-      e.preventDefault();
-      e.stopPropagation();
-      setSelectedElement(styleKey);
-    }
-  };
-
-  const markdownComponents = useMemo(() => {
-    const createStyledComponent = (tag: keyof JSX.IntrinsicElements, styleKey: StyleableElement) => {
-      return ({ ...props }) => {
-        const FinalComponent = tag as any;
-        return <FinalComponent style={styles[styleKey]} onClick={(e: React.MouseEvent) => createClickHandler(e, styleKey)} className={isInspecting ? 'inspectable' : ''} {...props} />;
-      };
-    };
-    return { h1: createStyledComponent('h1', 'h1'), h2: createStyledComponent('h2', 'h2'), h3: createStyledComponent('h3', 'h3'), p: createStyledComponent('p', 'p'), a: createStyledComponent('a', 'a'), blockquote: createStyledComponent('blockquote', 'blockquote'), code: createStyledComponent('code', 'code'), pre: createStyledComponent('pre', 'pre'), strong: createStyledComponent('strong', 'strong'), };
-  }, [styles, isInspecting, setSelectedElement]);
 
   return (
     <div className="app-container">
@@ -208,16 +248,32 @@ function App() {
             </Upload>
             <Button icon={<SaveOutlined />} onClick={handleProjectExport}>Export Project</Button>
             <Tooltip title={isInspecting ? 'Turn Off' : 'Turn On Inspect Mode'}>
-              <Switch checked={isInspecting} onChange={setInspecting} checkedChildren={<AimOutlined />} unCheckedChildren={<AimOutlined />} />
+              <Switch 
+                checked={isInspecting} 
+                onChange={setInspecting} 
+                checkedChildren={<AimOutlined />}
+                unCheckedChildren={<AimOutlined />}
+              />
             </Tooltip>
           </Space>
         </div>
-        <ReactMde value={markdown} onChange={setMarkdown} selectedTab={selectedTab} onTabChange={setSelectedTab} generateMarkdownPreview={(md) => Promise.resolve(<ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>{md}</ReactMarkdown>)} />
+        <ReactMde 
+          value={markdown} 
+          onChange={setMarkdown} 
+          selectedTab={selectedTab} 
+          onTabChange={setSelectedTab} 
+          generateMarkdownPreview={(md) => 
+            Promise.resolve(<ReactMarkdown remarkPlugins={[remarkGfm]}>{md}</ReactMarkdown>)
+          }
+        />
       </div>
-      <div ref={previewRef} className={`preview-pane ${isInspecting ? 'inspectable' : ''}`} style={styles.previewPane} onClick={(e) => createClickHandler(e, 'previewPane')}>
-        <div className={`markdown-wrapper ${isInspecting ? 'inspectable' : ''}`} style={styles.global} onClick={(e) => createClickHandler(e, 'global')}>
-          <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
-        </div>
+      <div className="preview-pane-wrapper">
+        <iframe 
+          ref={iframeRef} 
+          src="/preview" 
+          title="H5 Preview" 
+          className="preview-iframe"
+        />
       </div>
     </div>
   );
