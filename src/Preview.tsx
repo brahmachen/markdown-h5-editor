@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import { useStyleStore } from './styleStore';
 import type { StyleableElement, AppStyles } from './styleStore';
 
@@ -148,7 +149,7 @@ const Preview = () => {
         className="markdown-wrapper" // No longer need to toggle class here
         data-style-key="global"
       >
-        <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>
+        <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
           {markdown}
         </ReactMarkdown>
       </div>

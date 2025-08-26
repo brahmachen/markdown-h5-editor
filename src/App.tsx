@@ -6,6 +6,7 @@ import { Button, Upload, Space, Switch, Tooltip, message } from 'antd';
 import { UploadOutlined, AimOutlined, FileTextOutlined, SaveOutlined } from '@ant-design/icons';
 import mammoth from 'mammoth';
 import * as csstree from 'css-tree';
+import * as yaml from 'js-yaml';
 import { useStyleStore } from './styleStore';
 import type { AppStyles } from './styleStore';
 
@@ -244,6 +245,58 @@ function App() {
     message.success('Project exported!');
   };
 
+  const handleMarkdownExport = () => {
+    try {
+      const yamlString = yaml.dump(styles);
+      const fullContent = `---\n${yamlString}---\n
+${markdown}`;
+      const blob = new Blob([fullContent], { type: 'text/markdown;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'project.md';
+      link.click();
+      URL.revokeObjectURL(link.href);
+      message.success('Markdown file exported!');
+    } catch (error) {
+      console.error('Error exporting Markdown file:', error);
+      message.error('Failed to export Markdown file.');
+    }
+  };
+
+  const handleMarkdownImport = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const match = content.match(/^---\r?\n([\s\S]+?)\r?\n---\r?\n([\s\S]*)/);
+
+        if (match) {
+          const yamlString = match[1];
+          const mdContent = match[2] || '';
+          const loadedStyles = yaml.load(yamlString) as AppStyles;
+          
+          // Basic validation
+          if (typeof loadedStyles === 'object' && loadedStyles !== null) {
+            setStyles(loadedStyles);
+            setMarkdown(mdContent);
+            message.success('Markdown file imported successfully!');
+          } else {
+            throw new Error('Invalid YAML content in file.');
+          }
+        } else {
+          // If no front matter, treat the whole file as markdown
+          setMarkdown(content);
+          message.info('File imported as plain markdown (no styles found).');
+        }
+      } catch (error) {
+        console.error('Error importing Markdown file:', error);
+        message.error(`Failed to import Markdown file: ${error.message}`);
+      }
+    };
+    reader.readAsText(file);
+    return false;
+  };
+
   return (
     <div className="app-container">
       <StyleEditorPanel />
@@ -253,10 +306,16 @@ function App() {
             <Upload accept=".docx" showUploadList={false} beforeUpload={handleWordImport}>
               <Button icon={<FileTextOutlined />}>Import Word</Button>
             </Upload>
-            <Upload accept=".json" showUploadList={false} beforeUpload={handleProjectImport}>
-              <Button icon={<UploadOutlined />}>Import Project</Button>
+            <Upload accept=".json,.md" showUploadList={false} beforeUpload={(file) => {
+              if (file.name.endsWith('.md')) {
+                return handleMarkdownImport(file);
+              }
+              return handleProjectImport(file);
+            }}>
+              <Button icon={<UploadOutlined />}>Import Project/MD</Button>
             </Upload>
             <Button icon={<SaveOutlined />} onClick={handleProjectExport}>Export Project</Button>
+            <Button icon={<SaveOutlined />} onClick={handleMarkdownExport}>Export MD</Button>
             <Tooltip title={isInspecting ? 'Turn Off' : 'Turn On Inspect Mode'}>
               <Switch 
                 checked={isInspecting} 
