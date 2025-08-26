@@ -16,6 +16,8 @@ export interface AppStyles {
   code: React.CSSProperties;
   pre: React.CSSProperties;
   strong: React.CSSProperties;
+  ol: React.CSSProperties;
+  li: React.CSSProperties;
 }
 
 interface StyleState {
@@ -64,6 +66,13 @@ export const useStyleStore = create<StyleState>((set) => ({
     },
     strong: {
       color: '#000000'
+    },
+    ol: {
+      paddingLeft: '2em',
+    },
+    li: {
+      lineHeight: 1.6,
+      marginBottom: '0.4em',
     }
   },
   markdown: '# Welcome!\n\nThis is the final, stable version of the editor. Editing should now work as expected.',
@@ -74,7 +83,7 @@ export const useStyleStore = create<StyleState>((set) => ({
     set((state) => ({
       styles: {
         ...state.styles,
-        [element]: { ...state.styles[element], ...newStyle }, // Correctly merge styles
+        [element]: newStyle, // Replace the style for the element
       },
     })),
 

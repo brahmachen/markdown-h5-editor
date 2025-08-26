@@ -2,10 +2,13 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useStyleStore } from './styleStore';
-import type { StyleableElement } from './styleStore';
+import type { StyleableElement, AppStyles } from './styleStore';
 
 // This hook encapsulates the communication logic for the preview iframe
-const usePreviewComms = (setMarkdown: (md: string) => void) => {
+const usePreviewComms = (
+  setMarkdown: (md: string) => void,
+  setStyles: (styles: AppStyles) => void
+) => {
   const isSyncing = useRef(false);
 
   useEffect(() => {
@@ -19,6 +22,9 @@ const usePreviewComms = (setMarkdown: (md: string) => void) => {
           break;
         case 'update-markdown':
           setMarkdown(payload);
+          break;
+        case 'update-styles':
+          setStyles(payload);
           break;
         case 'editor-scroll': {
           if (isSyncing.current) return;
@@ -69,7 +75,7 @@ const usePreviewComms = (setMarkdown: (md: string) => void) => {
       document.removeEventListener('click', handleInspectClick, true);
       document.removeEventListener('scroll', handlePreviewScroll);
     };
-  }, [setMarkdown]);
+  }, [setMarkdown, setStyles]);
 };
 
 const inspectorStyles = `
@@ -86,14 +92,16 @@ const inspectorStyles = `
 
 // The Preview Component to be rendered in the iframe
 const Preview = () => {
-  const { styles } = useStyleStore();
-  const [markdown, setMarkdown] = useState('');
-  usePreviewComms(setMarkdown);
+  // Initialize state from the store once, then update via messages.
+  const [markdown, setMarkdown] = useState(useStyleStore.getState().markdown);
+  const [styles, setStyles] = useState(useStyleStore.getState().styles);
+  usePreviewComms(setMarkdown, setStyles);
 
   const markdownComponents = useMemo(() => {
     const createStyledComponent = (tag: keyof JSX.IntrinsicElements, styleKey: StyleableElement) => {
-      return ({ node, ...props }: any) => {
-        const Component = tag as any;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      return ({ node, ...props }: React.ComponentProps<typeof tag>) => {
+        const Component = tag;
         return <Component data-style-key={styleKey} {...props} />;
       };
     };
@@ -108,11 +116,14 @@ const Preview = () => {
       code: createStyledComponent('code', 'code'),
       pre: createStyledComponent('pre', 'pre'),
       strong: createStyledComponent('strong', 'strong'),
+      ol: createStyledComponent('ol', 'ol'),
+      li: createStyledComponent('li', 'li'),
     };
   }, []);
 
   // Create a <style> tag content from the styles state
   const generatedCss = useMemo(() => {
+    if (!styles) return '';
     return Object.entries(styles)
       .map(([key, styleObject]) => {
         const selector = 

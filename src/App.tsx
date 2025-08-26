@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import ReactMde from 'react-mde';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -7,7 +7,7 @@ import { UploadOutlined, AimOutlined, FileTextOutlined, SaveOutlined } from '@an
 import mammoth from 'mammoth';
 import * as csstree from 'css-tree';
 import { useStyleStore } from './styleStore';
-import type { StyleableElement, AppStyles } from './styleStore';
+import type { AppStyles } from './styleStore';
 
 import 'react-mde/lib/styles/css/react-mde-all.css';
 import './App.css';
@@ -36,11 +36,11 @@ const toReactStyleObject = (cssString: string): React.CSSProperties => {
       if (node.type === 'Declaration') {
         const prop = node.property.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
         const value = csstree.generate(node.value);
-        // @ts-ignore
+        // @ts-expect-error - csstree types are not perfectly aligned with React.CSSProperties
         style[prop] = value.trim();
       }
     });
-  } catch (error) {
+  } catch {
     // Don't log errors for incomplete CSS as user is typing
   }
   return style;
@@ -176,6 +176,16 @@ function App() {
       );
     }
   }, [markdown, isPreviewReady]);
+
+  // Sync styles to iframe
+  useEffect(() => {
+    if (isPreviewReady && iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
+        { type: 'update-styles', payload: styles },
+        '*'
+      );
+    }
+  }, [styles, isPreviewReady]);
 
   // --- File Handlers ---
   const handleWordImport = (file: File) => {
