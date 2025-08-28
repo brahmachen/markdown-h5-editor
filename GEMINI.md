@@ -1,51 +1,44 @@
-# Gemini Project Analysis: markdown-h5-editor
+# Gemini 项目分析: markdown-h5-editor
 
-This document provides a summary of the `markdown-h5-editor` project for quick context retrieval.
+本文档为 `markdown-h5-editor` 项目提供摘要，以便快速了解项目背景。
 
-## 1. Project Overview
+## 1. 项目概述与架构
 
-This is a web-based, feature-rich Markdown editor designed for H5 environments. It allows users to write Markdown, see a live preview, and visually style the HTML output. The editor supports importing from Word (`.docx`) files and saving/loading the entire project state (Markdown content + styles) as a JSON file.
+这是一个基于 Web 的、功能丰富的 Markdown 编辑器。其核心架构特性是一个**沙盒化的预览环境**。实时预览在一个加载了独立的 `/preview` 路由的 `iframe` 中进行渲染。这种方法提供了**彻底的样式隔离**，确保编辑器 UI 的样式不会与用户内容的样式发生冲突。
 
-A key feature is the "Inspect Mode," which allows users to click on rendered HTML elements in the preview pane to directly edit their CSS styles.
+主应用 (`App.tsx`) 和 `iframe` (`Preview.tsx`) 之间的通信是通过 `window.postMessage` 进行异步处理的。主应用向 `iframe` 发送 Markdown 内容和样式数据，而 `iframe` 则在“审查模式”下将用户交互（如元素选择）的信息发送回来。
 
-## 2. Tech Stack
+编辑器支持从 Word (`.docx`) 文件导入，以及将整个项目状态（Markdown 内容 + 样式）保存/加载为 **JSON 或 YAML 文件**。预览功能也得到了增强，支持在 Markdown 内容中**渲染原生 HTML**。
 
--   **Framework**: [React](https://react.dev/) (v19)
--   **Build Tool**: [Vite](https://vitejs.dev/)
--   **Language**: [TypeScript](https://www.typescriptlang.org/)
--   **UI Library**: [Ant Design (antd)](https://ant.design/) for components like buttons, uploads, and switches.
--   **State Management**: [Zustand](https://github.com/pmndrs/zustand) for managing global state, particularly for styles and editor mode (`isInspecting`).
--   **Markdown Processing**:
-    -   `react-mde`: The core Markdown editor component.
-    -   `react-markdown`: Renders Markdown to React components for the live preview.
-    -   `remark-gfm`: Adds support for GitHub Flavored Markdown (tables, strikethrough, etc.).
--   **File Conversion**:
-    -   `mammoth`: Converts `.docx` files to Markdown.
-    -   `css-tree`: Parses and manipulates CSS for the style editor.
--   **Linting**: [ESLint](https://eslint.org/) with TypeScript-specific rules.
+## 2. 技术栈
 
-## 3. Project Structure Highlights
+-   **框架**: [React](https://react.dev/) (v19)
+-   **构建工具**: [Vite](https://vitejs.dev/)
+-   **语言**: [TypeScript](https://www.typescriptlang.org/)
+-   **UI 库**: [Ant Design (antd)](https://ant.design/)
+-   **状态管理**: [Zustand](https://github.com/pmndrs/zustand)
+-   **Markdown 处理**:
+    -   `react-mde`: 核心 Markdown 编辑器组件。
+    -   `react-markdown`: 将 Markdown 渲染为 React 组件。
+    -   `remark-gfm`: 增加对 GitHub 风格 Markdown 的支持。
+    -   `rehype-raw`: 允许渲染原生 HTML。
+-   **文件转换**:
+    -   `mammoth`: 将 `.docx` 文件转换为 Markdown。
+    -   `css-tree`: 解析和操作 CSS。
+    -   `js-yaml`: 处理 YAML 格式的导入和导出。
+-   **代码检查**: [ESLint](https.eslint.org/)
 
--   `vite.config.ts`: Standard Vite configuration with the React plugin.
--   `src/main.tsx`: The application entry point. Renders the `App` component.
--   `src/App.tsx`: The main application component. It contains all the core logic:
-    -   Layout (editor pane, preview pane, style editor).
-    -   State management integration (`useStyleStore`).
-    -   File import/export handlers (`.docx`, `.json`).
-    -   Scroll-syncing logic between the editor and preview.
-    -   The "Inspect Mode" click handlers.
-    -   Custom rendering logic for Markdown elements to apply dynamic styles.
--   `src/styleStore.ts`: The Zustand store. It defines the global state for:
-    -   `styles`: An object holding CSS-in-JS style objects for all styleable HTML elements.
-    -   `isInspecting`: A boolean to toggle the style inspector.
-    -   `selectedElement`: The currently selected element for styling.
-    -   Actions to modify the state.
--   `public/`: Contains static assets.
--   `package.json`: Defines scripts and lists all project dependencies.
+## 3. 项目结构亮点
 
-## 4. Key Operations
+-   `src/main.tsx`: 应用入口文件。**为主要应用 (`/`) 和预览页面 (`/preview`) 设置路由**。
+-   `src/App.tsx`: 主应用组件，包含编辑器和主界面。**它负责渲染 `iframe` 并管理基于 `postMessage` 的通信**，用于发送内容/样式和接收审查事件。
+-   `src/Preview.tsx`: **此组件在 `iframe` 内部运行**。它监听 `postMessage` 事件以接收来自父窗口的 Markdown 内容和样式。它使用 `react-markdown` 渲染内容，并在“审查模式”下点击时将消息发送回父窗口。
+-   `src/styleStore.ts`: Zustand 状态管理文件，定义了样式和审查模式的全局状态。
+-   `package.json`: 定义项目脚本和依赖项。
 
--   **Run Development Server**: `npm run dev`
--   **Build for Production**: `npm run build`
--   **Run Linter**: `npm run lint`
--   **Preview Production Build**: `npm run preview`
+## 4. 关键操作
+
+-   **运行开发服务器**: `npm run dev`
+-   **构建生产版本**: `npm run build`
+-   **运行代码检查**: `npm run lint`
+-   **预览生产版本**: `npm run preview`

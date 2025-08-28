@@ -1,69 +1,46 @@
-# React + TypeScript + Vite
+# Markdown H5 编辑器
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+这是一个功能丰富的、基于 Web 的 Markdown 编辑器，专为 H5 环境设计。它的核心特性是实时预览功能，该预览在一个沙盒化的 `iframe` 中进行渲染，以确保与编辑器界面的样式完全隔离。
 
-Currently, two official plugins are available:
+编辑器与预览窗口之间的通信是通过 `postMessage` API 异步处理的。
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 功能特性
 
-## Expanding the ESLint configuration
+-   **沙盒化实时预览**: 在 `iframe` 中实时查看渲染后的 HTML 更新，确保样式展示的准确性，避免与编辑器UI冲突。
+-   **可视化样式编辑器**: 通过图形化界面更改颜色、字体大小、边距和内边距等 CSS 属性。
+-   **审查模式**: 在预览窗口中直接点击元素，即可选中并开始编辑其样式。
+-   **文件导入**:
+    -   从 Microsoft Word (`.docx`) 文件导入内容。
+    -   从 JSON 或 YAML 文件加载项目状态。
+-   **文件导出**:
+    -   将完整的项目状态（Markdown 内容 + 样式）保存为 JSON 或 YAML 文件。
+-   **原生 HTML 渲染**: 预览窗口支持渲染嵌入在 Markdown 中的原生 HTML 标签，提供了更大的灵活性。
+-   **同步滚动**: 编辑器和预览窗口可以同步滚动。
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 技术栈
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+-   **框架**: React (v19)
+-   **构建工具**: Vite
+-   **语言**: TypeScript
+-   **UI 库**: Ant Design (antd)
+-   **状态管理**: Zustand
+-   **Markdown 处理**: `react-mde`, `react-markdown`, `remark-gfm`, `rehype-raw`
+-   **文件处理**: `mammoth` (docx), `js-yaml` (yaml)
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+## 快速开始
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1.  **安装依赖:**
+    ```bash
+    npm install
+    ```
+2.  **运行开发服务器:**
+    ```bash
+    npm run dev
+    ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 可用脚本
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+-   `npm run dev`: 启动开发服务器。
+-   `npm run build`: 构建用于生产环境的应用。
+-   `npm run lint`: 运行 ESLint 进行代码检查。
+-   `npm run preview`: 在本地预览生产环境的构建成果。
