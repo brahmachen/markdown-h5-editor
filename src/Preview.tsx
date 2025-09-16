@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { useStyleStore } from './styleStore';
+import { convertStyleObject } from './utils/styleConverter';
 import type { StyleableElement, AppStyles } from './styleStore';
 
 // This hook encapsulates the communication logic for the preview iframe
@@ -125,7 +126,14 @@ const Preview = () => {
   // Create a <style> tag content from the styles state
   const generatedCss = useMemo(() => {
     if (!styles) return '';
-    return Object.entries(styles)
+
+    // Convert all px values in the styles object to vw units before generating the CSS string.
+    const convertedStyles = Object.entries(styles).reduce((acc, [key, styleObject]) => {
+      acc[key as StyleableElement] = convertStyleObject(styleObject);
+      return acc;
+    }, {} as AppStyles);
+
+    return Object.entries(convertedStyles)
       .map(([key, styleObject]) => {
         const selector = 
           key === 'global' ? '.markdown-wrapper' : 
@@ -140,6 +148,7 @@ const Preview = () => {
       })
       .join('\n');
   }, [styles]);
+
 
   return (
     <>

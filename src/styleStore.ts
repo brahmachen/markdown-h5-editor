@@ -40,39 +40,38 @@ export const useStyleStore = create<StyleState>((set) => ({
     },
     global: {
       backgroundColor: '#ffffff',
-      padding: '2em'
+      padding: '32px'
     },
-    h1: { fontSize: '2.2em', color: '#111111', marginTop: '0.5em' },
-    h2: { fontSize: '1.8em', color: '#222222', marginTop: '0.5em' },
-    h3: { fontSize: '1.5em', color: '#333333', marginTop: '0.5em' },
-    p: { fontSize: '1em', lineHeight: 1.7, color: '#333333' },
+    h1: { fontSize: '35px', color: '#111111', marginTop: '8px' },
+    h2: { fontSize: '29px', color: '#222222', marginTop: '8px' },
+    h3: { fontSize: '24px', color: '#333333', marginTop: '8px' },
+    p: { fontSize: '16px', color: '#333333' },
     a: { color: '#007bff', textDecoration: 'underline' },
     blockquote: {
       borderLeft: '4px solid #dddddd',
-      paddingLeft: '1em',
+      paddingLeft: '16px',
       color: '#777777',
-      margin: '1em 0'
+      margin: '16px 0'
     },
     code: {
       backgroundColor: '#f0f0f0',
       color: '#c7254e',
-      padding: '0.2em 0.4em',
+      padding: '3px 6px',
       borderRadius: '3px'
     },
     pre: {
       backgroundColor: '#f5f5f5',
-      padding: '1em',
+      padding: '16px',
       borderRadius: '5px'
     },
     strong: {
       color: '#000000'
     },
     ol: {
-      paddingLeft: '2em',
+      paddingLeft: '32px',
     },
     li: {
-      lineHeight: 1.6,
-      marginBottom: '0.4em',
+      marginBottom: '6px',
     }
   },
   markdown: '# Welcome!\n\nThis is the final, stable version of the editor. Editing should now work as expected.',
