@@ -25,11 +25,15 @@ interface StyleState {
   markdown: string;
   isInspecting: boolean;
   selectedElement: StyleableElement;
+  isVwMode: boolean;
+  designWidth: number;
   setStyle: (element: StyleableElement, newStyle: React.CSSProperties) => void;
   setStyles: (newStyles: AppStyles) => void;
   setMarkdown: (markdown: string) => void;
   setInspecting: (isInspecting: boolean) => void;
   setSelectedElement: (element: StyleableElement) => void;
+  setVwMode: (isOn: boolean) => void;
+  setDesignWidth: (width: number) => void;
 }
 
 export const useStyleStore = create<StyleState>((set) => ({
@@ -77,6 +81,8 @@ export const useStyleStore = create<StyleState>((set) => ({
   markdown: '# Welcome!\n\nThis is the final, stable version of the editor. Editing should now work as expected.',
   isInspecting: false,
   selectedElement: 'global',
+  isVwMode: false,
+  designWidth: 375,
 
   setStyle: (element, newStyle) =>
     set((state) => ({
@@ -90,4 +96,6 @@ export const useStyleStore = create<StyleState>((set) => ({
   setMarkdown: (markdown) => set({ markdown }),
   setInspecting: (isInspecting) => set({ isInspecting }),
   setSelectedElement: (element) => set({ selectedElement: element }),
+  setVwMode: (isOn) => set({ isVwMode: isOn }),
+  setDesignWidth: (width) => set({ designWidth: width }),
 }));

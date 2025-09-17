@@ -4,13 +4,14 @@ import ReactMde from 'react-mde';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import { Button, Upload, Space, Switch, Tooltip, message, Dropdown } from 'antd';
+import { Button, Upload, Space, Switch, Tooltip, message, Dropdown, InputNumber } from 'antd';
 import { UploadOutlined, AimOutlined, FileTextOutlined, SaveOutlined, DownloadOutlined } from '@ant-design/icons';
 import mammoth from 'mammoth';
 import * as csstree from 'css-tree';
 import * as yaml from 'js-yaml';
 import { useStyleStore } from './styleStore';
-import type { AppStyles } from './styleStore';
+import type { AppStyles, StyleableElement } from './styleStore';
+import { convertStyleObject } from './utils/styleConverter';
 
 import 'react-mde/lib/styles/css/react-mde-all.css';
 import './App.css';
@@ -95,6 +96,10 @@ function App() {
     isInspecting,
     setInspecting,
     setSelectedElement,
+    isVwMode,
+    setVwMode,
+    designWidth,
+    setDesignWidth,
   } = useStyleStore();
 
   const editorRef = useRef<HTMLDivElement>(null);
@@ -160,35 +165,24 @@ function App() {
     };
   }, [isPreviewReady]);
 
-  // Sync inspecting state to iframe
+  // --- Consolidated State Sync to iFrame ---
   useEffect(() => {
     if (isPreviewReady && iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage(
-        { type: 'toggle-inspect', payload: isInspecting },
+        {
+          type: 'update-state',
+          payload: {
+            markdown,
+            styles,
+            isInspecting,
+            isVwMode,
+            designWidth,
+          },
+        },
         '*'
       );
     }
-  }, [isInspecting, isPreviewReady]);
-
-  // Sync markdown content to iframe
-  useEffect(() => {
-    if (isPreviewReady && iframeRef.current?.contentWindow) {
-      iframeRef.current.contentWindow.postMessage(
-        { type: 'update-markdown', payload: markdown },
-        '*'
-      );
-    }
-  }, [markdown, isPreviewReady]);
-
-  // Sync styles to iframe
-  useEffect(() => {
-    if (isPreviewReady && iframeRef.current?.contentWindow) {
-      iframeRef.current.contentWindow.postMessage(
-        { type: 'update-styles', payload: styles },
-        '*'
-      );
-    }
-  }, [styles, isPreviewReady]);
+  }, [markdown, styles, isInspecting, isVwMode, designWidth, isPreviewReady]);
 
   // --- File Handlers ---
   const handleWordImport = (file: File) => {
@@ -250,10 +244,7 @@ function App() {
   const handleMarkdownExport = () => {
     try {
       const yamlString = yaml.dump(styles);
-      const fullContent = `---
-${yamlString}---
-
-${markdown}`;
+      const fullContent = `---${'\n'}${yamlString}---${'\n'}${'\n'}${markdown}`;
       const blob = new Blob([fullContent], { type: 'text/markdown;charset=utf-8' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
@@ -269,7 +260,7 @@ ${markdown}`;
   
   const handleHtmlExport = () => {
     try {
-      const content = generateFullHtml(markdown, styles);
+      const content = generateFullHtml(markdown, styles, isVwMode, designWidth);
       const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
@@ -334,7 +325,7 @@ ${markdown}`;
             }}>
               <Button icon={<UploadOutlined />}>Import Project/MD</Button>
             </Upload>
-                        <Dropdown.Button
+            <Dropdown.Button
               icon={<SaveOutlined />}
               onClick={handleProjectExport}
               menu={{
@@ -378,37 +369,70 @@ ${markdown}`;
         />
       </div>
       <div className="preview-pane-wrapper">
-        <iframe 
-          ref={iframeRef} 
-          src="/preview" 
-          title="H5 Preview" 
-          className="preview-iframe"
-        />
+        <div className="phone-mockup">
+          <div className="preview-toolbar">
+            <Space className="vw-controls">
+              <Tooltip title="Enable VW Preview Mode">
+                <Switch 
+                  checked={isVwMode} 
+                  onChange={setVwMode} 
+                  checkedChildren="VW"
+                  unCheckedChildren="PX"
+                />
+              </Tooltip>
+              {isVwMode && (
+                <InputNumber
+                  addonBefore="Width"
+                  addonAfter="px"
+                  value={designWidth}
+                  onChange={(val) => setDesignWidth(val || 375)}
+                  min={320}
+                />
+              )}
+            </Space>
+          </div>
+          <iframe 
+            ref={iframeRef} 
+            src="/preview" 
+            title="H5 Preview" 
+            className="preview-iframe"
+          />
+        </div>
       </div>
     </div>
   );
 }
 
-const generateFullHtml = (markdown: string, styles: AppStyles): string => {
+const generateFullHtml = (
+  markdown: string, 
+  styles: AppStyles, 
+  isVwMode: boolean, 
+  designWidth: number
+): string => {
   const contentHtml = ReactDOMServer.renderToStaticMarkup(
     <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
       {markdown}
     </ReactMarkdown>
   );
 
-  const styleEntries = Object.entries(styles);
-  
-  const bodyStyles = toCssString(styles.previewPane);
+  const stylesToUse = isVwMode
+    ? Object.entries(styles).reduce((acc, [key, styleObject]) => {
+        acc[key as StyleableElement] = convertStyleObject(styleObject, designWidth);
+        return acc;
+      }, {} as AppStyles)
+    : styles;
 
-  const contentWrapperStyles = toCssString(styles.global);
+  const styleEntries = Object.entries(stylesToUse);
+  
+  const bodyStyles = toCssString(stylesToUse.previewPane);
+
+  const contentWrapperStyles = toCssString(stylesToUse.global);
 
   const elementStyles = styleEntries
     .filter(([key]) => key !== 'previewPane' && key !== 'global')
     .map(([tag, styleObject]) => {
       const cssProps = toCssString(styleObject as React.CSSProperties);
-      return `#content ${tag} {
-${cssProps}
-}`;
+      return `#content ${tag} {\n${cssProps}\n}`;
     })
     .join('\n\n');
 
