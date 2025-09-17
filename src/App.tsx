@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactDOMServer from 'react-dom/server';
 import ReactMde from 'react-mde';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Button, Upload, Space, Switch, Tooltip, message } from 'antd';
-import { UploadOutlined, AimOutlined, FileTextOutlined, SaveOutlined } from '@ant-design/icons';
+import rehypeRaw from 'rehype-raw';
+import { Button, Upload, Space, Switch, Tooltip, message, Dropdown } from 'antd';
+import { UploadOutlined, AimOutlined, FileTextOutlined, SaveOutlined, DownloadOutlined } from '@ant-design/icons';
 import mammoth from 'mammoth';
 import * as csstree from 'css-tree';
 import * as yaml from 'js-yaml';
@@ -248,7 +250,9 @@ function App() {
   const handleMarkdownExport = () => {
     try {
       const yamlString = yaml.dump(styles);
-      const fullContent = `---\n${yamlString}---\n
+      const fullContent = `---
+${yamlString}---
+
 ${markdown}`;
       const blob = new Blob([fullContent], { type: 'text/markdown;charset=utf-8' });
       const link = document.createElement('a');
@@ -260,6 +264,22 @@ ${markdown}`;
     } catch (error) {
       console.error('Error exporting Markdown file:', error);
       message.error('Failed to export Markdown file.');
+    }
+  };
+  
+  const handleHtmlExport = () => {
+    try {
+      const content = generateFullHtml(markdown, styles);
+      const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'export.html';
+      link.click();
+      URL.revokeObjectURL(link.href);
+      message.success('HTML file exported!');
+    } catch (error) {
+      console.error('Error exporting HTML file:', error);
+      message.error('Failed to export HTML file.');
     }
   };
 
@@ -314,8 +334,26 @@ ${markdown}`;
             }}>
               <Button icon={<UploadOutlined />}>Import Project/MD</Button>
             </Upload>
-            <Button icon={<SaveOutlined />} onClick={handleProjectExport}>Export Project</Button>
-            <Button icon={<SaveOutlined />} onClick={handleMarkdownExport}>Export MD</Button>
+                        <Dropdown.Button
+              icon={<SaveOutlined />}
+              onClick={handleProjectExport}
+              menu={{
+                items: [
+                  {
+                    key: 'export-md',
+                    label: 'Export as Markdown (.md)',
+                    onClick: handleMarkdownExport,
+                  },
+                  {
+                    key: 'export-html',
+                    label: 'Export as HTML (.html)',
+                    onClick: handleHtmlExport,
+                  },
+                ],
+              }}
+            >
+              Export Project
+            </Dropdown.Button>
             <Tooltip title={isInspecting ? 'Turn Off' : 'Turn On Inspect Mode'}>
               <Switch 
                 checked={isInspecting} 
@@ -350,5 +388,58 @@ ${markdown}`;
     </div>
   );
 }
+
+const generateFullHtml = (markdown: string, styles: AppStyles): string => {
+  const contentHtml = ReactDOMServer.renderToStaticMarkup(
+    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+      {markdown}
+    </ReactMarkdown>
+  );
+
+  const styleEntries = Object.entries(styles);
+  
+  const bodyStyles = toCssString(styles.previewPane);
+
+  const contentWrapperStyles = toCssString(styles.global);
+
+  const elementStyles = styleEntries
+    .filter(([key]) => key !== 'previewPane' && key !== 'global')
+    .map(([tag, styleObject]) => {
+      const cssProps = toCssString(styleObject as React.CSSProperties);
+      return `#content ${tag} {
+${cssProps}
+}`;
+    })
+    .join('\n\n');
+
+  const finalCss = `
+    body {
+      ${bodyStyles}
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    }
+    #content {
+      ${contentWrapperStyles}
+    }
+    ${elementStyles}
+  `;
+
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Exported Document</title>
+      <style>${finalCss}</style>
+    </head>
+    <body>
+      <div id="content">
+        ${contentHtml}
+      </div>
+    </body>
+    </html>
+  `;
+};
 
 export default App;
