@@ -27,6 +27,7 @@ interface StyleState {
   selectedElement: StyleableElement;
   isVwMode: boolean;
   designWidth: number;
+  currentProjectId: number | null;
   setStyle: (element: StyleableElement, newStyle: React.CSSProperties) => void;
   setStyles: (newStyles: AppStyles) => void;
   setMarkdown: (markdown: string) => void;
@@ -34,9 +35,11 @@ interface StyleState {
   setSelectedElement: (element: StyleableElement) => void;
   setVwMode: (isOn: boolean) => void;
   setDesignWidth: (width: number) => void;
+  setCurrentProjectId: (id: number | null) => void;
+  resetState: () => void; // To clear the editor for a new project
 }
 
-export const useStyleStore = create<StyleState>((set) => ({
+const initialState = {
   styles: {
     previewPane: {
       backgroundColor: '#f0f2f5',
@@ -78,24 +81,30 @@ export const useStyleStore = create<StyleState>((set) => ({
       marginBottom: '6px',
     }
   },
-  markdown: '# Welcome!\n\nThis is the final, stable version of the editor. Editing should now work as expected.',
+  markdown: '# Welcome!\n\nStart typing to create your amazing document.',
   isInspecting: false,
-  selectedElement: 'global',
+  selectedElement: 'global' as StyleableElement,
   isVwMode: false,
   designWidth: 375,
+  currentProjectId: null,
+};
 
+export const useStyleStore = create<StyleState>((set) => ({
+  ...initialState,
   setStyle: (element, newStyle) =>
     set((state) => ({
       styles: {
         ...state.styles,
-        [element]: newStyle, // Replace the style for the element
+        [element]: newStyle,
       },
     })),
-
   setStyles: (newStyles) => set({ styles: newStyles }),
   setMarkdown: (markdown) => set({ markdown }),
   setInspecting: (isInspecting) => set({ isInspecting }),
   setSelectedElement: (element) => set({ selectedElement: element }),
   setVwMode: (isOn) => set({ isVwMode: isOn }),
   setDesignWidth: (width) => set({ designWidth: width }),
+  setCurrentProjectId: (id) => set({ currentProjectId: id }),
+  resetState: () => set(initialState),
 }));
+
