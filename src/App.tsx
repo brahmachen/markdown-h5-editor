@@ -17,6 +17,115 @@ import { convertStyleObject } from './utils/styleConverter';
 import 'react-mde/lib/styles/css/react-mde-all.css';
 import './App.css';
 
+// --- Sample Project Data ---
+const sampleMarkdown = `
+# 软件开发服务协议
+
+---
+
+**甲方（委托方）：** Acme 公司
+**乙方（服务方）：** 您的开发团队
+
+## 1. 服务范围
+
+乙方同意根据本协议的条款和条件，为甲方提供以下软件开发服务：
+
+*   开发一款名为“Markdown H5 Editor”的在线编辑器。
+*   实现包括但不限于以下功能点：
+    1.  Markdown 实时预览
+    2.  样式自定义
+    3.  项目持久化存储
+*   提供相关的技术支持和维护。
+
+> **请注意：** 任何超出上述范围的需求，均需双方另行协商并签订补充协议。
+
+## 2. 项目交付物与时间表
+
+| 交付阶段 | 主要交付物 | 预计完成日期 |
+| :--- | :--- | :--- |
+| **第一阶段** | 产品原型 (UI/UX) | 2025-10-01 |
+| **第二阶段** | Alpha 测试版 | 2025-11-15 |
+| **第三阶段** | 正式发布版 | 2025-12-31 |
+
+## 3. 费用与支付
+
+项目总费用为 **$50,000**，支付方式如下：
+
+- **预付款：** 协议签订后3个工作日内，支付总费用的 30%。
+- **里程碑付款：** 每个交付阶段完成并经甲方验收合格后，支付相应比例的费用。
+- **尾款：** 项目正式发布后，支付剩余的 10%。
+
+## 4. 机密信息
+
+双方同意，对于在合作过程中获知的对方的任何商业、技术及运营信息（定义为“机密信息”）予以严格保密。代码 
+const secret = '保密信息';
+ 也属于机密信息的一部分。
+
+## 5. 其他
+
+本协议的更多详情，请参考 [官方文档](https://example.com)。
+
+![Placeholder Image](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgNDAwIDEwMCI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMGYwZjAiIC8+PHRleHQgeD0iMjAwIiB5PSI1NSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4ODgiPlNJR05BVFVSRSBBUkVNPC90ZXh0PjxsaW5lIHgxPSI1MCIgeTE9IjgwIiB4Mj0iMzUwIiB5Mj0iODAiIHN0cm9rZT0iI2FhYSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9zdmc+)
+*图1：双方签字区域示意*
+
+## 附录A：功能开发排期表示例
+
+| ID | 模块 | 功能描述 | 状态 |负责人| 预计完成日期 | 备注 |
+| :--- | :--- | :--- | :--- |:--- |:--- |:--- |
+| FEAT-001 | 编辑器核心 | 支持基础 Markdown 语法 | 已完成 | 张三 | 2025-09-15 | 无 |
+| FEAT-002 | 样式系统 | 支持自定义 CSS 样式 | 已完成 | 李四 | 2025-09-20 | 需要考虑 vw 适配 |
+| FEAT-003 | 持久化 | 实现 IndexedDB 存储 | 进行中 | 王五 | 2025-09-30 | 需设计好数据表结构 |
+| BUG-001 | 预览模块 | 修复滚动同步不精确问题 | 待处理 | 李四 | 2025-10-05 | 考虑引入 Source Maps |
+`;
+
+const sampleStyles: AppStyles = {
+  previewPane: { backgroundColor: '#f7f8fa', border: 'none' },
+  global: { backgroundColor: '#ffffff', padding: '24px', fontFamily: 'serif', fontSize: '15px' },
+  h1: { fontSize: '34px', color: '#1a2b48', marginTop: '16px', borderBottom: '2px solid #1a2b48', paddingBottom: '8px' },
+  h2: { fontSize: '26px', color: '#1a2b48', marginTop: '20px' },
+  h3: { fontSize: '20px', color: '#334d7c', marginTop: '16px' },
+  p: { fontSize: '15px', color: '#333333', lineHeight: 1.6 },
+  a: { color: '#0056b3', textDecoration: 'none' },
+  blockquote: { borderLeft: '5px solid #0056b3', paddingLeft: '20px', color: '#555', backgroundColor: '#f0f7ff', margin: '16px 0' },
+  code: { backgroundColor: '#e8e8e8', color: '#333', padding: '2px 5px', borderRadius: '3px' },
+  pre: { backgroundColor: '#2d2d2d', color: '#f8f8f2', padding: '16px', borderRadius: '5px' },
+  strong: { color: '#000' },
+  ol: { paddingLeft: '32px' },
+  ul: { paddingLeft: '32px' },
+  li: { marginBottom: '6px', fontSize: '15px' },
+  table: {
+    borderCollapse: 'separate',
+    borderSpacing: 0,
+    borderRadius: '8px',
+    overflow: 'hidden',
+    border: '1px solid #dee2e6',
+    width: '100%',
+    margin: '16px 0',
+  },
+  th: {
+    backgroundColor: 'rgba(233, 236, 239, 0.5)',
+    padding: '10px 14px',
+    textAlign: 'left',
+    fontWeight: '600',
+    borderBottom: '2px solid #dee2e6',
+    whiteSpace: 'nowrap',
+    fontSize: '15px',
+  },
+  td: {
+    padding: '10px 14px',
+    borderTop: '1px solid #dee2e6',
+    fontSize: '15px',
+  },
+  img: {
+    maxWidth: '100%',
+    height: 'auto',
+    display: 'block',
+    margin: '16px auto', // Center the image
+    borderRadius: '8px',
+    boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+  }
+};
+
 // A simple debounce utility
 function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
   let timeout: number;
@@ -86,7 +195,14 @@ function App() {
   // --- Project Logic ---
   const handleNewProject = () => {
     store.resetState();
-    message.success('New project started.');
+    message.success('New blank project started.');
+  };
+
+  const handleLoadSample = () => {
+    store.resetState();
+    store.setMarkdown(sampleMarkdown);
+    store.setStyles(sampleStyles);
+    message.success('Sample agreement loaded.');
   };
 
   const handleSave = useCallback(async () => {
@@ -172,8 +288,10 @@ function App() {
           isSyncing.current = true;
           const editorTextArea = editorRef.current?.querySelector('.mde-textarea-wrapper textarea');
           if (editorTextArea) {
+            const syncFactor = 1.1; // Tweak this factor to adjust scroll feel
+            const curvedRatio = Math.pow(payload, 1 / syncFactor);
             const { scrollHeight, clientHeight } = editorTextArea;
-            editorTextArea.scrollTop = payload * (scrollHeight - clientHeight);
+            editorTextArea.scrollTop = curvedRatio * (scrollHeight - clientHeight);
           }
           setTimeout(() => { isSyncing.current = false; }, 100);
           break;
@@ -256,7 +374,10 @@ function App() {
   const handleMarkdownExport = () => {
     try {
       const yamlString = yaml.dump(store.styles);
-      const fullContent = `---\n${yamlString}---\n\n${store.markdown}`;
+      const fullContent = `---
+${yamlString}---
+
+${store.markdown}`;
       const blob = new Blob([fullContent], { type: 'text/markdown;charset=utf-8' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
@@ -282,8 +403,15 @@ function App() {
     } catch (error) { message.error('Failed to export HTML file.'); }
   };
 
+  const newMenu = (
+    <Menu items={[
+      { key: 'blank', label: 'Blank Project', onClick: handleNewProject },
+      { key: 'sample', label: 'Agreement Template', onClick: handleLoadSample },
+    ]} />
+  );
+
   const exportMenu = (
-    <Menu items={[ 
+    <Menu items={[
       { key: 'html', label: 'Export as HTML', onClick: handleHtmlExport },
       { key: 'md', label: 'Export as Markdown (.md)', onClick: handleMarkdownExport },
       { key: 'json', label: 'Export Project (.json)', onClick: handleProjectExport },
@@ -297,7 +425,9 @@ function App() {
         <div className="editor-pane" ref={editorRef}>
           <div className="toolbar">
             <Space>
-              <Button icon={<FileAddOutlined />} onClick={handleNewProject}>New</Button>
+              <Dropdown overlay={newMenu}>
+                <Button icon={<FileAddOutlined />}>New</Button>
+              </Dropdown>
               <Button icon={<FolderOpenOutlined />} onClick={() => setHistoryModalOpen(true)}>Open</Button>
               <Dropdown.Button icon={<SaveOutlined />} onClick={handleSave} menu={{ items: [{ key: 'save-as', label: 'Save As New...', onClick: () => setSaveModalOpen(true) }] }}>Save</Dropdown.Button>
               <Upload accept=".docx" showUploadList={false} beforeUpload={handleWordImport}><Button icon={<FileTextOutlined />}>Import Word</Button></Upload>
@@ -323,19 +453,27 @@ function App() {
       </div>
 
       <Modal title="Open Project" open={isHistoryModalOpen} onCancel={() => setHistoryModalOpen(false)} footer={null} width={600}>
-        <List
-          itemLayout="horizontal"
-          dataSource={projects}
-          renderItem={(proj: Project) => (
-            <List.Item
-              actions={[
-                <Button key="open" type="primary" onClick={() => handleLoadProject(proj.id!)}>Open</Button>,
-                <Button key="delete" danger onClick={() => handleDeleteProject(proj.id!)}><DeleteOutlined /></Button>,
-              ]}>
-              <List.Item.Meta title={proj.name} description={`Last saved: ${proj.updatedAt.toLocaleString()}`} />
-            </List.Item>
-          )}
-        />
+        {projects && projects.length > 0 ? (
+          <List
+            itemLayout="horizontal"
+            dataSource={projects}
+            renderItem={(proj: Project) => (
+              <List.Item
+                actions={[
+                  <Button key="open" type="primary" onClick={() => handleLoadProject(proj.id!)}>Open</Button>,
+                  <Button key="delete" danger onClick={() => handleDeleteProject(proj.id!)}><DeleteOutlined /></Button>,
+                ]}>
+                <List.Item.Meta title={proj.name} description={`Last saved: ${proj.updatedAt.toLocaleString()}`} />
+              </List.Item>
+            )}
+          />
+        ) : (
+          <div style={{ textAlign: 'center', padding: '48px 0' }}>
+            <h3>No Projects Found</h3>
+            <p>Get started by creating a new project or loading the sample.</p>
+            <Button type="primary" onClick={() => { handleLoadSample(); setHistoryModalOpen(false); }}>Load Sample Agreement</Button>
+          </div>
+        )}
       </Modal>
 
       <Modal title="Save New Project" open={isSaveModalOpen} onOk={handleSaveAsNew} onCancel={() => setSaveModalOpen(false)}>
@@ -352,11 +490,24 @@ const generateFullHtml = (
   isVwMode: boolean, 
   designWidth: number
 ): string => {
+  const componentsForExport = {
+    table: ({ node, ...props }) => (
+      <div style={{ overflowX: 'auto', width: '100%' }}>
+        <table {...props} />
+      </div>
+    ),
+  };
+
   const contentHtml = ReactDOMServer.renderToStaticMarkup(
-    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+    <ReactMarkdown 
+      remarkPlugins={[remarkGfm]} 
+      rehypePlugins={[rehypeRaw]}
+      components={componentsForExport}
+    >
       {markdown}
     </ReactMarkdown>
   );
+
 
   // Decide whether to convert styles to VW units
   const stylesToUse = isVwMode

@@ -14,6 +14,7 @@ html, body, #root {
   display: flex;
   height: 100vh;
   width: 100vw;
+  min-width: 1200px; /* Prevent layout from breaking on small screens */
 }
 
 .style-pane {
@@ -109,7 +110,7 @@ html, body, #root {
   padding: 2rem;
   background-color: #f0f2f5;
   overflow: hidden;
-  flex: 1;
+  flex: 0 0 450px; /* Do not grow, do not shrink, base width 450px */
 }
 
 .phone-mockup {

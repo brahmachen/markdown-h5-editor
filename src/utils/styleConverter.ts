@@ -4,6 +4,7 @@ import React from 'react';
 // 例如，边框宽度为1px时，如果转换为vw，在小屏幕上可能变得几乎看不见。
 // 用户可以根据需求调整这个列表。
 const nonConvertibleProperties: Set<keyof React.CSSProperties> = new Set([
+  'lineHeight',
   'border',
   'borderWidth',
   'borderTopWidth',

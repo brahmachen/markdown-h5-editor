@@ -18,6 +18,11 @@ export interface AppStyles {
   strong: React.CSSProperties;
   ol: React.CSSProperties;
   li: React.CSSProperties;
+  ul: React.CSSProperties;
+  img: React.CSSProperties;
+  table: React.CSSProperties;
+  th: React.CSSProperties;
+  td: React.CSSProperties;
 }
 
 interface StyleState {
@@ -47,7 +52,8 @@ const initialState = {
     },
     global: {
       backgroundColor: '#ffffff',
-      padding: '32px'
+      padding: '32px',
+      fontSize: '16px',
     },
     h1: { fontSize: '35px', color: '#111111', marginTop: '8px' },
     h2: { fontSize: '29px', color: '#222222', marginTop: '8px' },
@@ -77,9 +83,31 @@ const initialState = {
     ol: {
       paddingLeft: '32px',
     },
+    ul: {
+      paddingLeft: '32px'
+    },
     li: {
       marginBottom: '6px',
-    }
+    },
+    img: {
+      maxWidth: '100%',
+      height: 'auto',
+      display: 'block',
+      margin: '16px 0'
+    },
+    table: {
+      width: '100%',
+      borderCollapse: 'collapse'
+    },
+    th: {
+      padding: '8px',
+      border: '1px solid #ddd',
+      fontWeight: 'bold'
+    },
+    td: {
+      padding: '8px',
+      border: '1px solid #ddd'
+    },
   },
   markdown: '# Welcome!\n\nStart typing to create your amazing document.',
   isInspecting: false,

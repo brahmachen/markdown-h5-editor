@@ -29,8 +29,10 @@ const usePreviewState = () => {
         if (isSyncing.current) return;
         isSyncing.current = true;
         const scrollable = document.documentElement;
+        const syncFactor = 1.1; // Tweak this factor to adjust scroll feel
+        const curvedRatio = Math.pow(payload, syncFactor);
         const { scrollHeight, clientHeight } = scrollable;
-        scrollable.scrollTop = payload * (scrollHeight - clientHeight);
+        scrollable.scrollTop = curvedRatio * (scrollHeight - clientHeight);
         setTimeout(() => { isSyncing.current = false; }, 100);
       }
     };
@@ -117,7 +119,18 @@ const Preview = () => {
       pre: createStyledComponent('pre', 'pre'),
       strong: createStyledComponent('strong', 'strong'),
       ol: createStyledComponent('ol', 'ol'),
+      ul: createStyledComponent('ul', 'ul'),
       li: createStyledComponent('li', 'li'),
+      th: createStyledComponent('th', 'th'),
+      td: createStyledComponent('td', 'td'),
+      table: ({ node, ...props }) => (
+        <div style={{ overflowX: 'auto', width: '100%' }}>
+          <table data-style-key="table" {...props} />
+        </div>
+      ),
+      img: ({ node, src, alt, ...props }) => (
+        <img data-style-key="img" src={src} alt={alt} {...props} />
+      ),
     };
   }, []);
 
@@ -152,7 +165,12 @@ const Preview = () => {
       <style>{inspectorStyles}</style>
       <style>{generatedCss}</style>
       <div className="markdown-wrapper" data-style-key="global">
-        <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+        <ReactMarkdown 
+          components={markdownComponents} 
+          remarkPlugins={[remarkGfm]} 
+          rehypePlugins={[rehypeRaw]}
+          urlTransform={(src) => src}
+        >
           {markdown}
         </ReactMarkdown>
       </div>
